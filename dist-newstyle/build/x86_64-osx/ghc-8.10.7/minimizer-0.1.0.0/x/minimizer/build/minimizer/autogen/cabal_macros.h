@@ -20,6 +20,26 @@
   (major1) == 4 && (major2) <  14 || \
   (major1) == 4 && (major2) == 14 && (minor) <= 3)
 #endif /* MIN_VERSION_base */
+/* package megaparsec-9.2.0 */
+#ifndef VERSION_megaparsec
+#define VERSION_megaparsec "9.2.0"
+#endif /* VERSION_megaparsec */
+#ifndef MIN_VERSION_megaparsec
+#define MIN_VERSION_megaparsec(major1,major2,minor) (\
+  (major1) <  9 || \
+  (major1) == 9 && (major2) <  2 || \
+  (major1) == 9 && (major2) == 2 && (minor) <= 0)
+#endif /* MIN_VERSION_megaparsec */
+/* package parser-combinators-1.3.0 */
+#ifndef VERSION_parser_combinators
+#define VERSION_parser_combinators "1.3.0"
+#endif /* VERSION_parser_combinators */
+#ifndef MIN_VERSION_parser_combinators
+#define MIN_VERSION_parser_combinators(major1,major2,minor) (\
+  (major1) <  1 || \
+  (major1) == 1 && (major2) <  3 || \
+  (major1) == 1 && (major2) == 3 && (minor) <= 0)
+#endif /* MIN_VERSION_parser_combinators */
 /* package sexpresso-1.2.1.0 */
 #ifndef VERSION_sexpresso
 #define VERSION_sexpresso "1.2.1.0"
@@ -30,7 +50,27 @@
   (major1) == 1 && (major2) <  2 || \
   (major1) == 1 && (major2) == 2 && (minor) <= 1)
 #endif /* MIN_VERSION_sexpresso */
+/* package text-1.2.4.1 */
+#ifndef VERSION_text
+#define VERSION_text "1.2.4.1"
+#endif /* VERSION_text */
+#ifndef MIN_VERSION_text
+#define MIN_VERSION_text(major1,major2,minor) (\
+  (major1) <  1 || \
+  (major1) == 1 && (major2) <  2 || \
+  (major1) == 1 && (major2) == 2 && (minor) <= 4)
+#endif /* MIN_VERSION_text */
 
+/* tool alex-3.2.7.1 */
+#ifndef TOOL_VERSION_alex
+#define TOOL_VERSION_alex "3.2.7.1"
+#endif /* TOOL_VERSION_alex */
+#ifndef MIN_TOOL_VERSION_alex
+#define MIN_TOOL_VERSION_alex(major1,major2,minor) (\
+  (major1) <  3 || \
+  (major1) == 3 && (major2) <  2 || \
+  (major1) == 3 && (major2) == 2 && (minor) <= 7)
+#endif /* MIN_TOOL_VERSION_alex */
 /* tool gcc-13.0.1 */
 #ifndef TOOL_VERSION_gcc
 #define TOOL_VERSION_gcc "13.0.1"

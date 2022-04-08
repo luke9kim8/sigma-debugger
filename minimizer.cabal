@@ -31,5 +31,8 @@ executable minimizer
     -- other-extensions:
     build-depends:    base ^>=4.14.3.0
                     , sexpresso ^>=1.2.1.0
+                    , megaparsec ^>=9.2.0
+                    , text ^>=1.2.4.1
+                    , parser-combinators 
     hs-source-dirs:   app
     default-language: Haskell2010
