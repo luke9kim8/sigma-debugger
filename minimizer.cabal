@@ -25,7 +25,12 @@ executable minimizer
     main-is:          Main.hs
 
     -- Modules included in this executable, other than Main.
-    -- other-modules:
+    other-modules:    SmtSexp
+                    , Traversal
+                    , Sigma
+                    , Mutators
+                    , Parser
+                    , Printer
 
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:
@@ -33,6 +38,9 @@ executable minimizer
                     , sexpresso ^>=1.2.1.0
                     , megaparsec ^>=9.2.0
                     , text ^>=1.2.4.1
-                    , parser-combinators 
+                    , containers ^>=0.6.5.1
+                    , parser-combinators
+                    , mtl ^>=2.2.2
+                    , process ^>= 1.6.14.0
     hs-source-dirs:   app
     default-language: Haskell2010
