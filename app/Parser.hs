@@ -11,11 +11,6 @@ import Debug.Trace
 
 import SmtSexp
 
--- numbers = L.decimal `sepBy` char ',' 
--- main = case parse numbers "" "11,2,43" of
---          Left bundle -> print "wrong bro"
---          Right xs -> print (sum xs)
-
 parseSmtSexprs :: Parsec () String [SmtSexp]
 parseSmtSexprs = decode $ plainSExprParser parseAtom
 
@@ -38,16 +33,3 @@ parseAtom = p "=" Eq
   <|> trace ("parsing function") (some (alphaNumChar <|> oneOf "!^_") >>= return . Fn)
   where
     p str atom = string str >> pure atom
-
---atom = some letterChar
---
---sexp = decode $ plainSExprParser atom
---
----- Returns (SList () [SAtom "hello", SAtom "world"])
---ex1 = parse sexp "" "(hello world)"
---
----- Returns (SList () [SAtom "hello", SAtom "world", SList () [SAtom "bonjour"]])
---ex2 = parse sexp "" "  (hello world(bonjour))  "
---
----- Returns SAtom "hola"
---ex3 = parse sexp "" "hola"

@@ -9,7 +9,7 @@ import Control.Monad.State.Lazy
 
 import Debug.Trace
 
-type Mutator = SmtSexp -> SmtSexp 
+type Mutator = SmtSexp -> SmtSexp
 
 addZero :: Mutator
 addZero (SmtList [SAtom Add, SAtom (Val 0), atom]) = atom
@@ -74,3 +74,19 @@ contractFnNames roots = traverseInorder roots mut
             put (drop 1 ns, M.insert fn (head ns) tb)
           return x
         x -> return x
+
+type SigmaM = StateT Focus IO
+
+printAllFocus :: SigmaM ()
+printAllFocus = do
+  (Pos _ c _, _) <- get
+  liftIO $ print c >> putStrLn ">>= ::<u8>"
+  return ()
+
+printSexps :: [SmtSexp] -> IO ()
+printSexps sexps = do
+  runStateT m initFocus >> pure ()
+  where
+    initFocus = smtSexprsToFocus sexps
+
+    m = traverseZipperState printAllFocus

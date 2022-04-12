@@ -27,6 +27,7 @@ data Atom
   | Val Int
   | Fn String
   | B Bool
+  | Empty  -- For delta-debugging purposes, when we want to remove a sexpr
   deriving (Eq)
 
 instance Show Atom where
@@ -46,3 +47,4 @@ instance Show Atom where
     Val n  -> show n
     Fn fn  -> fn
     B b    -> if b then "true" else "false"
+    Empty  -> ""

@@ -1,4 +1,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# OPTIONS_GHC -Wno-incomplete-patterns #-}
+{-# LANGUAGE FlexibleContexts #-}
 module Traversal where
 
 import SmtSexp
@@ -9,8 +12,8 @@ import Control.Monad
 
 import Data.SExpresso.SExpr
 
-data Crumb = Crumb [SmtSexp] [SmtSexp]
-data Position = Pos [SmtSexp] SmtSexp [SmtSexp]
+data Crumb = Crumb [SmtSexp] [SmtSexp] deriving Show
+data Position = Pos [SmtSexp] SmtSexp [SmtSexp] deriving Show
 type Breadcrumbs = [Crumb]
 type Focus = (Position, Breadcrumbs)
 
@@ -20,20 +23,52 @@ canMoveRight (Pos _ _ rs, _) = not . null $ rs
 canMoveUp :: Focus -> Bool
 canMoveUp (_, hist) = not . null $ hist
 
-moveRightSmtList :: Focus -> Focus
-moveRightSmtList (Pos ls curr (r:rs), hist) = (Pos (ls ++ [curr]) r rs, hist)
+canMoveDown :: Focus -> Bool
+canMoveDown (Pos _ (SmtList _) _, _) = True
+canMoveDown x = False
+
+posToSmtSexpr :: Position -> SmtSexp
+posToSmtSexpr (Pos l curr r) = SmtList (l ++ [curr] ++ r)
+
+smtSexprsToFocus :: [SmtSexp] -> Focus
+smtSexprsToFocus (x:xs) = (Pos [] x xs, [])
+
+moveRight :: Focus -> Focus
+moveRight (Pos ls curr (r:rs), hist) = (Pos (ls ++ [curr]) r rs, hist)
 
 moveUp :: Focus -> Focus
-moveUp (Pos posL curr posR, Crumb cL cR:hs) = (Pos cL smtList posR, hs)
+moveUp (currPos, Crumb cL cR:hs) = (Pos cL smtList cR, hs)
   where
-    smtList = SmtList (posL ++ [curr] ++ posR)
+    smtList = posToSmtSexpr currPos
 
 moveDown :: Focus -> Focus
 moveDown (Pos ls (SmtList (x:xs)) rs, hs) = (Pos [] x xs, Crumb ls rs:hs)
 
 rebuild :: Focus -> SmtSexp
-rebulid (curr, []) = curr
+rebuild (curr, []) = posToSmtSexpr curr
 rebuild focus = rebuild (moveUp focus)
+
+traverseZipperState
+  :: forall m a. MonadState Focus m
+  => m a
+  -> m SmtSexp
+traverseZipperState cps = do
+  zipper
+  rebuild <$> get
+  where
+    zipper :: m ()
+    zipper = do
+      cps
+      c <- canMoveDown <$> get
+      when c $ do
+        modify moveDown
+        zipper
+        modify moveUp
+
+      d <- canMoveRight <$> get
+      when d $ do
+        modify moveRight
+        zipper
 
 --traverseLevelOrderZipperM
 --  :: forall a s m. (Eq a, Monad m)
