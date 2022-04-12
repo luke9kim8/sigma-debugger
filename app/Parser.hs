@@ -7,6 +7,7 @@ import Text.Megaparsec
 import Text.Megaparsec.Char
 import Data.SExpresso.Parse.Char
 import Data.SExpresso.Parse.Generic
+import Debug.Trace
 
 import SmtSexp
 
@@ -34,7 +35,7 @@ parseAtom = p "=" Eq
   <|> p "*" Mult
   <|> p "assert" Assert
   <|> (some digitChar >>= (return . Val) . read)
-  <|> (some (alphaNumChar <|> oneOf "!^_") >>= return . Fn)
+  <|> trace ("parsing function") (some (alphaNumChar <|> oneOf "!^_") >>= return . Fn)
   where
     p str atom = string str >> pure atom
 
