@@ -9,7 +9,6 @@ import Traversal
 import SmtSexp
 import System.Exit
 
-data SMTResult = Err String | Success String
 
 runPass :: String -> IO ()
 runPass path = do
@@ -18,13 +17,7 @@ runPass path = do
       sexps' = contractFnNames sexps
       --sexps'' = traverseInorder sexps'
       --  (addZero . multOne)
+  testMutation sexps 
   writeFile "smt/out.smt2" (fmtSmt sexps')
   putStrLn "Written to smt/out.smt2" 
 
-testSMT :: [SmtSexp] -> IO SMTResult
-testSMT exprs = do
-  writeFile "smt/test.out" (fmtSmt exprs)
-  code <- system "bash b.sh smt/test.out > bash_ouput.out"
-  cvcOutput <- readFile "tmp.out"
-  if code == ExitSuccess then return $ Success cvcOutput
-  else return $ Err (show code)

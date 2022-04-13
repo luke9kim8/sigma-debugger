@@ -2,14 +2,16 @@ module Mutators where
 
 import Traversal
 import SmtSexp
-
+import Printer
 import qualified Data.Map as M
 import Data.SExpresso.SExpr
 import Control.Monad.State.Lazy
-
+import System.Exit
 import Debug.Trace
+import System.Process
 
 type Mutator = SmtSexp -> SmtSexp
+data SMTResult = Err String | Success String
 
 addZero :: Mutator
 addZero (SmtList [SAtom Add, SAtom (Val 0), atom]) = atom
@@ -88,5 +90,28 @@ printSexps sexps = do
   runStateT m initFocus >> pure ()
   where
     initFocus = smtSexprsToFocus sexps
-
     m = traverseZipperState printAllFocus
+
+removeAtom :: SigmaM ()
+removeAtom = do
+  (Pos l _ r, hist) <- get
+  let newSMT = rebuild (Pos l (SAtom Empty) r, hist)
+  liftIO $ testSMT [newSMT]
+  return ()
+  
+testMutation
+  :: [SmtSexp]
+  -> IO ()
+testMutation sexps = do
+  runStateT m initFocus >> pure ()
+  where
+    initFocus = smtSexprsToFocus sexps
+    m = traverseZipperState removeAtom
+
+testSMT :: [SmtSexp] -> IO SMTResult
+testSMT exprs = do
+  writeFile "smt/test.out" (fmtSmt exprs)
+  code <- system "bash b.sh smt/test.out > tmp.out ; cat tmp.out"
+  cvcOutput <- readFile "tmp.out"
+  if code == ExitSuccess then return $ Success cvcOutput
+  else return $ Err (show code)

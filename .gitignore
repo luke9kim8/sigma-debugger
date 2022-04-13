@@ -1,1 +1,6 @@
 dist-newstyle/**
+**/*.cabal
+**/*.smt2
+**/*.out
+**/*.txt
+minimizer.cabal
