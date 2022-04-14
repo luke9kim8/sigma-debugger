@@ -96,22 +96,20 @@ removeAtom :: SigmaM ()
 removeAtom = do
   (Pos l _ r, hist) <- get
   let newSMT = rebuild (Pos l (SAtom Empty) r, hist)
-  liftIO $ testSMT [newSMT]
+  liftIO $ testSMT newSMT
   return ()
   
 testMutation
   :: [SmtSexp]
-  -> IO ()
-testMutation sexps = do
-  runStateT m initFocus >> pure ()
+  -> IO [SmtSexp]
+testMutation sexps = execStateT m initFocus
   where
     initFocus = smtSexprsToFocus sexps
     m = traverseZipperState removeAtom
 
 testSMT :: [SmtSexp] -> IO SMTResult
 testSMT exprs = do
-  writeFile "smt/test.out" (fmtSmt exprs)
-  code <- system "bash b.sh smt/test.out > tmp.out ; cat tmp.out"
-  cvcOutput <- readFile "tmp.out"
-  if code == ExitSuccess then return $ Success cvcOutput
+  writeFile "smt/test_out.smt2" (fmtSmt exprs)
+  code <- system "bash b.sh smt/test_out.smt2 > /dev/null"
+  if code == ExitSuccess then print "Success" >> return (Success "yass")
   else return $ Err (show code)

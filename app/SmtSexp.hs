@@ -47,4 +47,4 @@ instance Show Atom where
     Val n  -> show n
     Fn fn  -> fn
     B b    -> if b then "true" else "false"
-    Empty  -> ""
+    Empty  -> "Empty"

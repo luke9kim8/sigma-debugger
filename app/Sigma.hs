@@ -17,7 +17,6 @@ runPass path = do
       sexps' = contractFnNames sexps
       --sexps'' = traverseInorder sexps'
       --  (addZero . multOne)
-  testMutation sexps 
-  writeFile "smt/out.smt2" (fmtSmt sexps')
-  putStrLn "Written to smt/out.smt2" 
+  sexps'' <- testMutation sexps' 
+  writeFile "smt/out.smt2" (fmtSmt sexps'')
 

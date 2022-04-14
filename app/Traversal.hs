@@ -44,14 +44,14 @@ moveUp (currPos, Crumb cL cR:hs) = (Pos cL smtList cR, hs)
 moveDown :: Focus -> Focus
 moveDown (Pos ls (SmtList (x:xs)) rs, hs) = (Pos [] x xs, Crumb ls rs:hs)
 
-rebuild :: Focus -> SmtSexp
-rebuild (curr, []) = posToSmtSexpr curr
+rebuild :: Focus -> [SmtSexp]
+rebuild (curr, []) = let (SmtList xs) = posToSmtSexpr curr in xs
 rebuild focus = rebuild (moveUp focus)
 
 traverseZipperState
   :: forall m a. MonadState Focus m
   => m a
-  -> m SmtSexp
+  -> m [SmtSexp]
 traverseZipperState cps = do
   zipper
   rebuild <$> get

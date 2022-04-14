@@ -6,7 +6,6 @@ import Control.Monad
 
 import Traversal
 import SmtSexp
-
 getFnNames :: [SmtSexp] -> [String]
 getFnNames sexps = S.toList $ execState (traverseInorderM sexps unionFn) mempty
   where
@@ -18,7 +17,9 @@ getFnNames sexps = S.toList $ execState (traverseInorderM sexps unionFn) mempty
 
 fmtSmtSexp :: SmtSexp -> String
 fmtSmtSexp (SAtom atom) = show atom
-fmtSmtSexp (SList () sexps) = "(" ++ (unwords . map fmtSmtSexp) sexps ++ ")"
+fmtSmtSexp (SList () sexps) = let sexps' = filter ((/=) (SAtom Empty)) sexps in
+  if null sexps' then ""
+  else "(" ++ (unwords . map fmtSmtSexp) sexps' ++ ")"
 
 fmtSmt :: [SmtSexp] -> String
 fmtSmt sexps =
