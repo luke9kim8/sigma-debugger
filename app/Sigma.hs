@@ -8,15 +8,19 @@ import Mutators
 import Traversal
 import SmtSexp
 import System.Exit
+import System.Random.Stateful
+import SigmaM 
 
 
 runPass :: String -> IO ()
 runPass path = do
   smt <- readFile path 
   let Right sexps = runParser parseSmtSexprs "" smt
-      sexps' = contractFnNames sexps
-      --sexps'' = traverseInorder sexps'
-      --  (addZero . multOne)
-  sexps'' <- testMutation sexps' 
-  writeFile "smt/out.smt2" (fmtSmt sexps'')
+      sexps1 = contractFnNames sexps
+      sexps2 = traverseInorder sexps1
+        (addZero . multOne )
+  let pureGen = mkStdGen 100
+  sexps3 <- evalSigmaM (runTestMutationUntilFixedPoint sexps2) () 100
+  writeFile "smt/out.smt2" (fmtSmt sexps3)
+
 

@@ -1,3 +1,5 @@
+{-# LANGUAGE FlexibleContexts #-}
+
 module Mutators where
 
 import Traversal
@@ -9,6 +11,8 @@ import Control.Monad.State.Lazy
 import System.Exit
 import Debug.Trace
 import System.Process
+import System.Random.Stateful
+import SigmaM
 
 type Mutator = SmtSexp -> SmtSexp
 data SMTResult = Err String | Success String
@@ -55,7 +59,7 @@ contractFnNames roots = traverseInorder roots mut
     mut x = x
 
     fnNames :: [String]
-    fnNames = f 0
+    fnNames =  f 0
       where
         f idx = map (\ch -> ch:show idx) ['A'..'Z']
           ++ f (idx + 1)
@@ -77,9 +81,9 @@ contractFnNames roots = traverseInorder roots mut
           return x
         x -> return x
 
-type SigmaM = StateT Focus IO
+type Sigma = SigmaM Focus
 
-printAllFocus :: SigmaM ()
+printAllFocus :: (MonadState Focus m, MonadIO m) => m ()
 printAllFocus = do
   (Pos _ c _, _) <- get
   liftIO $ print c >> putStrLn ">>= ::<u8>"
@@ -92,24 +96,34 @@ printSexps sexps = do
     initFocus = smtSexprsToFocus sexps
     m = traverseZipperState printAllFocus
 
-removeAtom :: SigmaM ()
+removeAtom :: (MonadState Focus m, MonadIO m) => m ()
 removeAtom = do
   (Pos l _ r, hist) <- get
-  let newSMT = rebuild (Pos l (SAtom Empty) r, hist)
-  liftIO $ testSMT newSMT
-  return ()
+  let newSMT = (Pos l (SAtom Empty) r, hist)
+  smtResult <- liftIO $ testSMT . rebuild $ newSMT
+  case smtResult of 
+    Success _ -> put $ newSMT
+    Err _     -> return ()
   
 testMutation
   :: [SmtSexp]
-  -> IO [SmtSexp]
-testMutation sexps = execStateT m initFocus
+  -> Sigma [SmtSexp]
+testMutation sexps = evalStateT m initFocus
   where
     initFocus = smtSexprsToFocus sexps
-    m = traverseZipperState removeAtom
+    m = traverseZipperState (performRandomly removeAtom (return ()))
+
+runTestMutationUntilFixedPoint :: (MonadIO m, SigmaRandom m) => [SmtSexp] -> m [SmtSexp]
+runTestMutationUntilFixedPoint sexps = do 
+  sexps' <- testMutation sexps
+  if sexps' == sexps 
+  then return sexps'
+  else runTestMutationUntilFixedPoint sexps'
 
 testSMT :: [SmtSexp] -> IO SMTResult
 testSMT exprs = do
   writeFile "smt/test_out.smt2" (fmtSmt exprs)
   code <- system "bash b.sh smt/test_out.smt2 > /dev/null"
   if code == ExitSuccess then print "Success" >> return (Success "yass")
-  else return $ Err (show code)
+  else print "Unsuccsess" >> return (Err (show code))
+
