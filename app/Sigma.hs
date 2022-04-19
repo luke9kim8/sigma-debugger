@@ -12,15 +12,15 @@ import System.Random.Stateful
 import SigmaM 
 
 
-runPass :: String -> IO ()
-runPass path = do
+runPass :: Int -> String -> IO ()
+runPass seed path = do
   smt <- readFile path 
   let Right sexps = runParser parseSmtSexprs "" smt
       sexps1 = contractFnNames sexps
-      sexps2 = traverseInorder sexps1
-        (addZero . multOne )
-  let pureGen = mkStdGen 100
-  sexps3 <- evalSigmaM (runTestMutationUntilFixedPoint sexps2) () 100
-  writeFile "smt/out.smt2" (fmtSmt sexps3)
+      sexps2 = traverseInorder sexps1 (addZero . multOne)
+
+  sexps3 <- evalSigmaM
+    (runUntilFixedPoint sexps2 performRandomRemovalOnce) () seed
+  writeFile ("smt/out_" ++ show seed ++ ".smt2") (fmtSmt sexps3)
 
 

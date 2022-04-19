@@ -13,6 +13,7 @@ import Debug.Trace
 import System.Process
 import System.Random.Stateful
 import SigmaM
+import Traversal
 
 type Mutator = SmtSexp -> SmtSexp
 data SMTResult = Err String | Success String
@@ -59,7 +60,7 @@ contractFnNames roots = traverseInorder roots mut
     mut x = x
 
     fnNames :: [String]
-    fnNames =  f 0
+    fnNames =  map (:[]) ['A'..'Z'] ++ f 0
       where
         f idx = map (\ch -> ch:show idx) ['A'..'Z']
           ++ f (idx + 1)
@@ -83,47 +84,53 @@ contractFnNames roots = traverseInorder roots mut
 
 type Sigma = SigmaM Focus
 
-printAllFocus :: (MonadState Focus m, MonadIO m) => m ()
-printAllFocus = do
-  (Pos _ c _, _) <- get
-  liftIO $ print c >> putStrLn ">>= ::<u8>"
-  return ()
-
 printSexps :: [SmtSexp] -> IO ()
-printSexps sexps = do
-  runStateT m initFocus >> pure ()
+printSexps sexps = traverseZipper sexps printAllFocus >> return ()
   where
-    initFocus = smtSexprsToFocus sexps
-    m = traverseZipperState printAllFocus
+    printAllFocus :: Focus -> IO Position
+    printAllFocus (p@(Pos _ c _), _) = do
+      liftIO $ print c >> putStrLn ">>= ::<u8>"
+      return p
 
-removeAtom :: (MonadState Focus m, MonadIO m) => m ()
-removeAtom = do
-  (Pos l _ r, hist) <- get
-  let newSMT = (Pos l (SAtom Empty) r, hist)
-  smtResult <- liftIO $ testSMT . rebuild $ newSMT
-  case smtResult of 
-    Success _ -> put $ newSMT
-    Err _     -> return ()
-  
-testMutation
-  :: [SmtSexp]
-  -> Sigma [SmtSexp]
-testMutation sexps = evalStateT m initFocus
-  where
-    initFocus = smtSexprsToFocus sexps
-    m = traverseZipperState (performRandomly removeAtom (return ()))
+tryRemoveAtom :: MonadIO m => Focus -> m Position
+tryRemoveAtom (p@(Pos l _ r), hist) = do
+  let newPos = Pos l (SAtom Empty) r
+      newFocus = (newPos, hist)
 
-runTestMutationUntilFixedPoint :: (MonadIO m, SigmaRandom m) => [SmtSexp] -> m [SmtSexp]
-runTestMutationUntilFixedPoint sexps = do 
-  sexps' <- testMutation sexps
-  if sexps' == sexps 
-  then return sexps'
-  else runTestMutationUntilFixedPoint sexps'
+  smtResult <- liftIO $ isValidSMT . rebuild $ newFocus
+  return $ case smtResult of 
+    Success _ -> newPos
+    Err _     -> p
 
-testSMT :: [SmtSexp] -> IO SMTResult
-testSMT exprs = do
+isValidSMT :: MonadIO m => [SmtSexp] -> m SMTResult
+isValidSMT exprs = liftIO $ do
   writeFile "smt/test_out.smt2" (fmtSmt exprs)
   code <- system "bash b.sh smt/test_out.smt2 > /dev/null"
   if code == ExitSuccess then print "Success" >> return (Success "yass")
   else print "Unsuccsess" >> return (Err (show code))
 
+performRemovalOnce :: MonadIO m => [SmtSexp] -> m [SmtSexp]
+performRemovalOnce roots = traverseZipper roots tryRemoveAtom
+
+performRandomRemovalOnce
+  :: (MonadIO m, SigmaRandom m)
+  => [SmtSexp]
+  -> m [SmtSexp]
+performRandomRemovalOnce roots = traverseZipper roots k
+  where
+    k focus = join $ performRandomly
+      (tryRemoveAtom focus) (return (fst focus))
+
+  
+--testMutation
+--  :: [SmtSexp]
+--  -> Sigma [SmtSexp]
+--testMutation sexps = evalStateT m initFocus
+--  where
+--    initFocus = smtSexprsToFocus sexps
+--    m = traverseZipperState (performRandomly removeAtom (return ()))
+
+runUntilFixedPoint :: Monad m => [SmtSexp] -> ([SmtSexp] -> m [SmtSexp]) -> m [SmtSexp]
+runUntilFixedPoint roots go = do
+  updatedRoots <- go roots
+  if updatedRoots == roots then return roots else runUntilFixedPoint updatedRoots go

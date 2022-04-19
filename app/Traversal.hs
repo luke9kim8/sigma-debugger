@@ -48,17 +48,22 @@ rebuild :: Focus -> [SmtSexp]
 rebuild (curr, []) = let (SmtList xs) = posToSmtSexpr curr in xs
 rebuild focus = rebuild (moveUp focus)
 
-traverseZipperState
-  :: forall m a. MonadState Focus m
-  => m a
+traverseZipper
+  :: forall m. Monad m
+  => [SmtSexp]
+  -> (Focus -> m Position)
   -> m [SmtSexp]
-traverseZipperState cps = do
+traverseZipper roots cps = flip evalStateT initFocus $ do
   zipper
   rebuild <$> get
   where
-    zipper :: m ()
+    initFocus = smtSexprsToFocus roots
+    zipper :: StateT Focus m ()
     zipper = do
-      cps
+      focus@(_, hist) <- get
+      updatedPos <- lift $ cps focus
+      put (updatedPos, hist)
+
       c <- canMoveDown <$> get
       when c $ do
         modify moveDown
@@ -69,19 +74,6 @@ traverseZipperState cps = do
       when d $ do
         modify moveRight
         zipper
-
---traverseLevelOrderZipperM
---  :: forall a s m. (Eq a, Monad m)
---  => [Sexp a]
---  -> (Focus -> m ())
---  -> m ()
---traverseLevelOrderZipperM r:roots cps =
---  where
---    initPos = Pos [] r roots
---
---    levelOrder :: Focus -> m ()
---    levelOrder currFocus = do
---
 
 traverseInorderM
   :: forall a s m. (Eq a, Monad m)
