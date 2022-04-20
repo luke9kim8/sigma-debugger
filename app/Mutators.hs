@@ -34,30 +34,6 @@ multOne (SmtList [SAtom Mult, SAtom (Val 1), atom]) = atom
 multOne (SmtList [SAtom Mult, atom, SAtom (Val 1)]) = atom
 multOne x = x
 
-negateIneq :: Mutator
-negateIneq s@(SmtList [SAtom Not, SmtList ((SAtom e) : xs)]) =
-  case e of
-    Leq -> SmtList $ SAtom Ge  : xs
-    Geq -> SmtList $ SAtom Le  : xs
-    Le  -> SmtList $ SAtom Geq : xs
-    Ge  -> SmtList $ SAtom Leq : xs
-    _ -> s
-negateIneq s = s
-
-zeroOnOneSide :: Mutator
-zeroOnOneSide s@(SmtList
-  [SAtom ineq
-    , SmtList ((SAtom Add):(SAtom (Val k)):xs)
-    , SAtom (Val 0)]) =
-      if ineq `elem` [Eq, Leq, Geq, Le, Ge]
-        then
-          let k' = if k <= 0
-                     then SAtom (Val (-k))
-                     else SmtList [SAtom Neg, SAtom (Val k)]
-          in SmtList [SAtom ineq, SmtList xs, k']
-        else s
-zeroOnOneSide x = x
-
 contractFnNames :: [SmtSexp] -> [SmtSexp]
 contractFnNames roots = traverseInorder roots mut
   where
@@ -98,15 +74,18 @@ printSexps sexps = traverseZipper sexps printAllFocus >> return ()
       liftIO $ print c >> putStrLn ">>= ::<u8>"
       return p
 
-tryRemoveAtom :: MonadIO m => Focus -> m Position
-tryRemoveAtom (p@(Pos l _ r), hist) = do
-  let newPos = Pos l (SAtom Empty) r
+tryMutator :: MonadIO m => Mutator -> (Focus -> m Position)
+tryMutator mut (oldPos@(Pos l sexp r), hist) = liftIO $ do
+  let newPos = Pos l (mut sexp) r
       newFocus = (newPos, hist)
 
-  smtResult <- liftIO $ isValidSMT . rebuild $ newFocus
+  smtResult <- isValidSMT . rebuild $ newFocus
   return $ case smtResult of
     Success _ -> newPos
-    Err _     -> p
+    Err     _ -> oldPos
+
+tryRemoveAtom :: MonadIO m => Focus -> m Position
+tryRemoveAtom = tryMutator (const (SAtom Empty))
 
 isValidSMT :: MonadIO m => [SmtSexp] -> m SMTResult
 isValidSMT exprs = liftIO $ do
@@ -127,16 +106,8 @@ performRandomRemovalOnce roots = traverseZipper roots k
     k focus = join $ performRandomly
       (tryRemoveAtom focus) (return (fst focus))
 
-
---testMutation
---  :: [SmtSexp]
---  -> Sigma [SmtSexp]
---testMutation sexps = evalStateT m initFocus
---  where
---    initFocus = smtSexprsToFocus sexps
---    m = traverseZipperState (performRandomly removeAtom (return ()))
-
 runUntilFixedPoint :: Monad m => [SmtSexp] -> ([SmtSexp] -> m [SmtSexp]) -> m [SmtSexp]
 runUntilFixedPoint roots go = do
   updatedRoots <- go roots
   if updatedRoots == roots then return roots else runUntilFixedPoint updatedRoots go
+

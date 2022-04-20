@@ -48,21 +48,43 @@ rebuild :: Focus -> [SmtSexp]
 rebuild (curr, []) = let (SmtList xs) = posToSmtSexpr curr in xs
 rebuild focus = rebuild (moveUp focus)
 
+focusMap :: (SmtSexp -> SmtSexp) -> Focus -> Focus
+focusMap f (Pos l sexp r, hist) = (pos', hist')
+  where
+    l' = f <$> l
+    r' = f <$> r
+    sexp' = f sexp
+    pos' = Pos l' sexp' r'
+
+    crumbMap (Crumb ls rs) = Crumb (f <$> ls) (f <$> rs)
+    hist' = fmap crumbMap hist
+
 traverseZipper
   :: forall m. Monad m
   => [SmtSexp]
   -> (Focus -> m Position)
   -> m [SmtSexp]
-traverseZipper roots cps = flip evalStateT initFocus $ do
+traverseZipper roots cps = traverseZipperGlobal roots cps'
+  where
+    cps' focus@(pos, hist) = do
+      pos' <- cps focus
+      return (pos', hist)
+
+traverseZipperGlobal
+  :: forall m. Monad m
+  => [SmtSexp]
+  -> (Focus -> m Focus)
+  -> m [SmtSexp]
+traverseZipperGlobal roots cps = flip evalStateT initFocus $ do
   zipper
   rebuild <$> get
   where
     initFocus = smtSexprsToFocus roots
     zipper :: StateT Focus m ()
     zipper = do
-      focus@(_, hist) <- get
-      updatedPos <- lift $ cps focus
-      put (updatedPos, hist)
+      focus <- get
+      updatedFocus <- lift $ cps focus
+      put updatedFocus
 
       c <- canMoveDown <$> get
       when c $ do

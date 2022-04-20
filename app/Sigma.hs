@@ -22,7 +22,7 @@ runPass seed path = do
 
   sexps3 <- evalSigmaM
     (runUntilFixedPoint sexps2 performRandomRemovalOnce) () seed
-  let sexps4 = contractFnNames sexps3
-  writeFile ("smt/out_" ++ show seed ++ ".smt2") (fmtSmt sexps3)
 
+  let sexps4 = contractFnNames sexps3
+  writeFile ("smt/out_" ++ show seed ++ ".smt2") (fmtSmt sexps4)
 
