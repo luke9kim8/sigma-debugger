@@ -18,6 +18,12 @@ import Traversal
 type Mutator = SmtSexp -> SmtSexp
 data SMTResult = Err String | Success String
 
+flattenSmtSexp :: [SmtSexp] -> SmtSexp
+flattenSmtSexp sexps = SmtList [SAtom Assert, SmtList (SAtom And:merged)]
+  where
+    f (SmtList ((SAtom Assert):xs)) = xs
+    merged = concatMap f sexps
+
 addZero :: Mutator
 addZero (SmtList [SAtom Add, SAtom (Val 0), atom]) = atom
 addZero (SmtList [SAtom Add, atom, SAtom (Val 0)]) = atom
@@ -98,7 +104,7 @@ tryRemoveAtom (p@(Pos l _ r), hist) = do
       newFocus = (newPos, hist)
 
   smtResult <- liftIO $ isValidSMT . rebuild $ newFocus
-  return $ case smtResult of 
+  return $ case smtResult of
     Success _ -> newPos
     Err _     -> p
 
@@ -121,7 +127,7 @@ performRandomRemovalOnce roots = traverseZipper roots k
     k focus = join $ performRandomly
       (tryRemoveAtom focus) (return (fst focus))
 
-  
+
 --testMutation
 --  :: [SmtSexp]
 --  -> Sigma [SmtSexp]

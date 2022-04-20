@@ -25,7 +25,6 @@ fmtSmt :: [SmtSexp] -> String
 fmtSmt sexps =
   "(set-info :smt-lib-version 2.6)\n"
   ++ "(set-logic ALL)\n"
-  ++ "(set-info :category \"industrial\")\n"
   ++ "(set-info :status sat)\n"
   ++ concatMap
       (\fn -> "(declare-fun " ++ fn ++ " () Int)\n")
